@@ -43,3 +43,4 @@ packages/anp-client/src/
 .vercel
 .env*
 /.open-next/
+/.wrangler/
