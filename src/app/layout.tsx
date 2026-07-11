@@ -22,6 +22,11 @@ export const metadata: Metadata = {
     template: "%s · ANP",
   },
   description: SITE_TAGLINE,
+  // Resolves per page against metadataBase, so every route declares its
+  // own canonical URL on the apex host.
+  alternates: {
+    canonical: "./",
+  },
   openGraph: {
     siteName: "ANP",
     type: "website",

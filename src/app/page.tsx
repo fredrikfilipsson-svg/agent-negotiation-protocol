@@ -1,6 +1,17 @@
 import Link from "next/link";
 import { Code } from "@/components/Code";
 import { readExampleLog } from "@/lib/protocol";
+import { GITHUB_REPO_URL, SITE_NAME, SITE_TAGLINE, SITE_URL } from "@/lib/site";
+
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: SITE_NAME,
+  alternateName: "ANP",
+  url: SITE_URL,
+  description: SITE_TAGLINE,
+  sameAs: [GITHUB_REPO_URL],
+};
 
 const GUARANTEES = [
   {
@@ -38,6 +49,10 @@ export default function HomePage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+      />
       {/* Hero */}
       <section className="py-16 sm:py-24">
         <p className="mb-4 font-mono text-xs uppercase tracking-widest text-accent">
