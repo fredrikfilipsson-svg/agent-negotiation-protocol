@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://app.vendorbenchmark.com/agent-protocol/schemas/event.schema.json",
+  "title": "ANP v0.1 session log event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["seq", "actor", "kind", "payload", "payload_hash", "prev_hash", "event_hash", "at"],
+  "properties": {
+    "seq": { "type": "integer", "minimum": 1 },
+    "actor": { "enum": ["vendor_agent", "buyer"] },
+    "kind": { "enum": ["session_open", "envelope", "offer", "counter_offer", "message", "decline", "session_close"] },
+    "payload": {},
+    "payload_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "prev_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "event_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "signature": { "type": ["string", "null"], "maxLength": 120 },
+    "signer": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+    "at": { "type": "string", "format": "date-time" }
+  }
+}

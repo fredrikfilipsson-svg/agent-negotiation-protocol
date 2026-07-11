@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://app.vendorbenchmark.com/agent-protocol/schemas/offer.schema.json",
+  "title": "ANP v0.1 offer / counter-offer",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["currency", "term_months", "expires_at", "line_items"],
+  "properties": {
+    "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+    "term_months": { "type": "integer", "minimum": 1, "maximum": 120 },
+    "expires_at": { "type": "string", "format": "date-time" },
+    "line_items": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 200,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["description", "quantity", "unit", "unit_price", "currency"],
+        "properties": {
+          "sku": { "type": "string", "maxLength": 80 },
+          "description": { "type": "string", "minLength": 1, "maxLength": 300 },
+          "quantity": { "type": "number", "exclusiveMinimum": 0, "maximum": 10000000 },
+          "unit": { "type": "string", "minLength": 1, "maxLength": 40 },
+          "unit_price": { "type": "number", "minimum": 0, "maximum": 1000000000 },
+          "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+          "term_months": { "type": "integer", "minimum": 1, "maximum": 120 }
+        }
+      }
+    },
+    "total_annual": { "type": "number", "minimum": 0 },
+    "conditions": {
+      "type": "array",
+      "maxItems": 20,
+      "items": { "type": "string", "minLength": 1, "maxLength": 500 }
+    },
+    "notes": { "type": "string", "maxLength": 4000 }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://app.vendorbenchmark.com/agent-protocol/schemas/envelope.schema.json",
+  "title": "ANP v0.1 mandate exchange envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["party", "agent", "may_discuss", "may_disclose", "offer_authority"],
+  "properties": {
+    "party": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "declared_ai"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "declared_ai": { "const": true }
+      }
+    },
+    "may_discuss": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": { "type": "string", "minLength": 1, "maxLength": 120 }
+    },
+    "may_disclose": {
+      "type": "array",
+      "maxItems": 20,
+      "items": { "type": "string", "minLength": 1, "maxLength": 120 }
+    },
+    "will_not_disclose": {
+      "type": "array",
+      "maxItems": 20,
+      "items": { "type": "string", "minLength": 1, "maxLength": 120 }
+    },
+    "offer_authority": { "enum": ["none", "propose_only", "bind_with_human_approval"] },
+    "human_contact": { "type": "string", "maxLength": 320 }
+  }
+}
