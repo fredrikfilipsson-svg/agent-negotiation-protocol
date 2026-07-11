@@ -40,9 +40,29 @@ const validateOffer = ajv.compile(
 /** Validate an event payload against the schema for its kind (§6.3). */
 function payloadError(kind, payload) {
   if (kind === "offer" || kind === "counter_offer") {
-    return validateOffer(payload)
+    let candidate = payload;
+    // RFC-005 draft: offers may carry in_response_to; validate it, then
+    // check the remainder against the 0.1 schema.
+    if (DRAFT && payload && typeof payload === "object" && "in_response_to" in payload) {
+      const { in_response_to, ...rest } = payload;
+      if (!/^[0-9a-f]{64}$/.test(String(in_response_to)))
+        return "in_response_to must be a 64 hex event_hash";
+      candidate = rest;
+    }
+    return validateOffer(candidate)
       ? null
       : `payload does not conform to offer.schema.json: ${ajv.errorsText(validateOffer.errors)}`;
+  }
+  if (DRAFT && kind === "accept") {
+    // RFC-001/002 draft payload.
+    if (!/^[0-9a-f]{64}$/.test(String(payload?.in_response_to ?? "")))
+      return "accept requires in_response_to, the event_hash of the accepted offer";
+    const allowed = ["in_response_to", "note", "approval"];
+    const extra = Object.keys(payload).filter((k) => !allowed.includes(k));
+    if (extra.length > 0) return `unknown keys in accept payload: ${extra.join(", ")}`;
+    if (payload.note !== undefined && (typeof payload.note !== "string" || payload.note.length > 4000))
+      return "note must be a string of at most 4000 characters";
+    return null;
   }
   if (kind === "envelope") {
     return validateEnvelope(payload)
@@ -64,6 +84,16 @@ function payloadError(kind, payload) {
 const PORT = Number(process.env.PORT ?? 8787);
 const PROTOCOL = "ANP/0.1";
 const GENESIS = "0".repeat(64);
+
+/**
+ * ANP_DRAFT=1 enables prototypes of the 0.2 proposals in proposals/:
+ * the accept event with approval attestation (RFC-001/002), the
+ * /.well-known/anp.json document (RFC-003), open_signature at session
+ * open (RFC-004), in_response_to referencing (RFC-005), and key
+ * rotation (RFC-007). Without the flag the host is plain ANP/0.1.
+ */
+const DRAFT = process.env.ANP_DRAFT === "1";
+const STARTED_AT = new Date().toISOString();
 
 /* ---- primitives (kept dependency free and spec-literal) ----------------- */
 
@@ -187,6 +217,11 @@ function logDocument(sessionId, session, agent) {
     keys: {
       vendor_agent: { public_key: agent.publicKey, fingerprint: agent.fingerprint },
       buyer: { public_key: platform.publicKey, fingerprint: platform.fingerprint },
+      // RFC-007 draft: rotated-out keys stay listed so events signed
+      // before the rotation keep verifying.
+      ...Object.fromEntries(
+        (agent.history ?? []).map((k, i) => [`vendor_agent_rotated_${i + 1}`, k]),
+      ),
     },
     events: session.events,
   };
@@ -225,12 +260,38 @@ function counterOffer(offer, round) {
 
 async function buyerRespond(session, sessionId, kind, payload) {
   if (kind === "offer" || kind === "counter_offer") {
-    await appendBuyerEvent(session, sessionId, "counter_offer", counterOffer(payload, session.round));
+    const vendorEvent = session.events[session.events.length - 1];
+    const firstPrice = payload?.line_items?.[0]?.unit_price ?? Infinity;
+    // RFC-001/002 draft: the sandbox buyer accepts a sufficiently low
+    // offer, attesting the (simulated) human approval per RFC-002.
+    if (DRAFT && firstPrice <= 1100) {
+      const at = new Date().toISOString();
+      const approvedBy = "procurement@fabrikam.example";
+      const inResponseTo = vendorEvent.event_hash;
+      await appendBuyerEvent(session, sessionId, "accept", {
+        in_response_to: inResponseTo,
+        approval: {
+          approved_by: approvedBy,
+          at,
+          method: "human",
+          signature: await platformSign(
+            `ANP/0.2\napproval\n${inResponseTo}\n${approvedBy}\n${at}`,
+          ),
+        },
+      });
+      session.accepted = true;
+      return;
+    }
+    const counter = counterOffer(payload, session.round);
+    if (DRAFT) counter.in_response_to = vendorEvent.event_hash; // RFC-005
+    await appendBuyerEvent(session, sessionId, "counter_offer", counter);
     session.round += 1;
   } else if (kind === "message") {
     await appendBuyerEvent(session, sessionId, "message", {
       body: "Acknowledged. The sandbox buyer negotiates on structured offers; send one and it will counter deterministically.",
     });
+  } else if (kind === "accept") {
+    session.accepted = true;
   } else if (kind === "decline" || kind === "session_close") {
     session.closed = true;
   }
@@ -320,6 +381,53 @@ const server = createServer(async (req, res) => {
 
     const rawBody = req.method === "POST" ? await readBody(req) : "";
 
+    // RFC-003 draft: capability discovery and platform key publication.
+    if (DRAFT && req.method === "GET" && path === "/.well-known/anp.json") {
+      return send(res, 200, {
+        protocol_versions: [PROTOCOL, "ANP/0.2-draft"],
+        api_base: "/api/agent/v1",
+        platform_keys: [
+          {
+            public_key: platform.publicKey,
+            fingerprint: platform.fingerprint,
+            roles: ["events", "approval"],
+            valid_from: STARTED_AT,
+            valid_to: null,
+          },
+        ],
+      });
+    }
+
+    // RFC-007 draft: key rotation with identity continuity.
+    if (DRAFT && req.method === "POST" && path === "/api/agent/v1/keys") {
+      const agent = await authenticate(req, path, rawBody);
+      if (!agent) return refuse(res);
+      const { new_public_key, proof, authorization } = JSON.parse(rawBody || "{}");
+      if (typeof new_public_key !== "string" || fromB64u(new_public_key).length !== 32)
+        return badRequest(res, "new_public_key must be a raw 32-byte Ed25519 key, base64url.");
+      if (!(await verify(new_public_key, String(proof ?? ""), `ANP/0.2\nregister\n${new_public_key}`)))
+        return badRequest(res, "proof of possession of the new key does not verify.");
+      const newFingerprint = await sha256Hex(fromB64u(new_public_key));
+      const authString = `ANP/0.2\nrotate\n${agent.fingerprint}\n${newFingerprint}`;
+      if (!(await verify(agent.publicKey, String(authorization ?? ""), authString)))
+        return badRequest(res, "rotation authorization by the old key does not verify.");
+      const record = agents.get(agent.agentId);
+      record.history = [
+        ...(record.history ?? []),
+        { public_key: record.publicKey, fingerprint: record.fingerprint },
+      ];
+      agentsByKey.delete(record.publicKey);
+      record.publicKey = new_public_key;
+      record.fingerprint = newFingerprint;
+      agentsByKey.set(new_public_key, agent.agentId);
+      return send(res, 200, {
+        agent_id: agent.agentId,
+        fingerprint: newFingerprint,
+        status: "sandbox",
+        protocol: PROTOCOL,
+      });
+    }
+
     if (req.method === "POST" && path === "/api/agent/v1/sessions") {
       const agent = await authenticate(req, path, rawBody);
       if (!agent) return refuse(res);
@@ -329,14 +437,30 @@ const server = createServer(async (req, res) => {
       const envelopeError = payloadError("envelope", body?.envelope);
       if (envelopeError) return badRequest(res, envelopeError);
 
+      // RFC-004 draft: an optional open_signature by the vendor's key
+      // over the envelope's canonical hash, stored inside the payload so
+      // the chain covers it.
+      let openSignature = null;
+      if (DRAFT && typeof body.open_signature === "string") {
+        const envelopeHash = await sha256Hex(canonicalJson(body.envelope));
+        const valid = await verify(
+          agent.publicKey,
+          body.open_signature,
+          `ANP/0.2\nsession_open_envelope\n${envelopeHash}`,
+        );
+        if (!valid) return badRequest(res, "open_signature does not verify over the envelope.");
+        openSignature = body.open_signature;
+      }
+
       const sessionId = randomUUID();
-      const session = { events: [], agentId: agent.agentId, round: 0, closed: false };
+      const session = { events: [], agentId: agent.agentId, round: 0, closed: false, accepted: false };
       sessions.set(sessionId, session);
 
       const openPayload = {
         protocol: PROTOCOL,
         agent: { id: agent.agentId, name: agent.name, fingerprint: agent.fingerprint },
         envelope: body.envelope,
+        ...(openSignature ? { open_signature: openSignature } : {}),
       };
       // The host constructs and records events 1 and 2, signing both with
       // its platform key; the vendor's own events carry vendor signatures.
@@ -365,9 +489,19 @@ const server = createServer(async (req, res) => {
 
       const { kind, payload, signature } = JSON.parse(rawBody || "{}");
       const allowed = ["envelope", "offer", "counter_offer", "message", "decline", "session_close"];
+      if (DRAFT) allowed.push("accept");
       if (!allowed.includes(kind)) return badRequest(res, `kind must be one of ${allowed.join(", ")}.`);
       const schemaError = payloadError(kind, payload);
       if (schemaError) return badRequest(res, schemaError);
+      if (DRAFT && session.accepted && kind !== "message" && kind !== "session_close")
+        return badRequest(res, "The session is accepted; only message and session_close may follow.");
+      if (DRAFT && kind === "accept") {
+        const target = session.events.find(
+          (e) => e.event_hash === payload.in_response_to && (e.kind === "offer" || e.kind === "counter_offer"),
+        );
+        if (!target)
+          return badRequest(res, "accept.in_response_to does not reference an offer event in this session.");
+      }
       const payloadHash = await sha256Hex(canonicalJson(payload));
       if (!(await verify(agent.publicKey, String(signature ?? ""), `${PROTOCOL}\n${kind}\n${payloadHash}`)))
         return badRequest(res, "The authorship signature does not verify.");

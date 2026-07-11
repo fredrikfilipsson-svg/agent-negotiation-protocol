@@ -37,6 +37,17 @@ export default function GovernancePage() {
           change that motivates them, in the same pull request. Discussion is
           public; decisions and their reasoning stay in the issue history.
         </p>
+        <p className="mt-3 max-w-2xl leading-relaxed text-muted">
+          Draft RFCs for the next protocol version, several with running
+          prototypes, are collected under{" "}
+          <a
+            href="/proposals"
+            className="text-accent underline underline-offset-4"
+          >
+            proposals
+          </a>
+          .
+        </p>
       </section>
 
       <section aria-labelledby="versioning" className="mt-12">

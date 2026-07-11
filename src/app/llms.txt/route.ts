@@ -49,6 +49,13 @@ export function GET() {
   register, openSession, sendEvent, fetchLog, verifyLog; Node 18+ and
   browser compatible.
 
+## Evolution
+
+- [Proposals](${SITE_URL}/proposals): draft RFCs for ANP/0.2 (accept
+  event, human approval attestation, key discovery and rotation,
+  explicit offer referencing, integer minor units, webhooks, peer to
+  peer profile). Drafts are not normative; ANP/0.1 has no accept event.
+
 ## Facts agents get wrong
 
 - The version string "ANP/0.1" is baked into every signature and hash;
