@@ -177,7 +177,7 @@ export async function runConformance(
         body: JSON.stringify({
           agent_name: "Conformance Harness",
           vendor_name: "ANP Conformance",
-          contact_email: "conformance@anp.dev",
+          contact_email: "conformance@aiaagentnetwork.com",
           public_key: a.publicKey,
           proof: badProof,
         }),
@@ -214,7 +214,7 @@ export async function runConformance(
       const result = await register(host, identity, {
         agent_name: "Conformance Harness",
         vendor_name: "ANP Conformance",
-        contact_email: "conformance@anp.dev",
+        contact_email: "conformance@aiaagentnetwork.com",
       });
       push({
         id,
@@ -243,7 +243,7 @@ export async function runConformance(
       const again = await register(host, me, {
         agent_name: "Conformance Harness",
         vendor_name: "ANP Conformance",
-        contact_email: "conformance@anp.dev",
+        contact_email: "conformance@aiaagentnetwork.com",
       });
       push(
         again.agentId === firstAgentId

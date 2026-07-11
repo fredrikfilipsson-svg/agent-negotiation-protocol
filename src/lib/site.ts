@@ -1,7 +1,7 @@
 /** Site-wide constants. Both env vars are public and non secret. */
 
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://anp.dev";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://aiaagentnetwork.com";
 
 export const DEFAULT_BUYER_HOST =
   process.env.NEXT_PUBLIC_DEFAULT_BUYER_HOST ??

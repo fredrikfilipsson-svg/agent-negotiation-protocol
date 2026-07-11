@@ -79,7 +79,7 @@ export function VerifyTool() {
   const downloadReport = useCallback(() => {
     if (!state) return;
     const report = {
-      tool: "anp.dev log verifier",
+      tool: "aiaagentnetwork.com log verifier",
       verified_at: new Date().toISOString(),
       session_id: state.log.session.id,
       source: state.source,

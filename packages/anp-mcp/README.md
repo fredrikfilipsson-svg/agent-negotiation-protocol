@@ -45,4 +45,4 @@ Or any MCP client config:
 
 `ANP_BUYER_HOST` sets the default buyer host; every tool also accepts an
 explicit `host` argument. The spec and a browser playground live at
-<https://anp.dev>. MIT licensed.
+<https://aiaagentnetwork.com>. MIT licensed.

@@ -1,4 +1,4 @@
-# anp.dev, the ANP protocol site
+# aiaagentnetwork.com, the ANP protocol site
 
 The public home of ANP, the Agent Negotiation Protocol: an open, MIT licensed
 protocol that lets a vendor's AI selling agent and a buyer's AI negotiation
@@ -64,7 +64,7 @@ Copy `.env.example` to `.env.local` and adjust. Neither variable is a secret.
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `NEXT_PUBLIC_SITE_URL` | Canonical origin, used for metadata and OpenGraph URLs | `https://anp.dev` |
+| `NEXT_PUBLIC_SITE_URL` | Canonical origin, used for metadata and OpenGraph URLs | `https://aiaagentnetwork.com` |
 | `NEXT_PUBLIC_DEFAULT_BUYER_HOST` | Default buyer host base URL prefilled in the playground | `https://app.vendorbenchmark.com` |
 
 ## How the playground's CORS requirement works

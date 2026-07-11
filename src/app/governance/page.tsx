@@ -75,10 +75,10 @@ export default function GovernancePage() {
         <p className="mt-3 max-w-2xl leading-relaxed text-muted">
           For vulnerabilities in the protocol design, email{" "}
           <a
-            href="mailto:security@anp.dev"
+            href="mailto:security@aiaagentnetwork.com"
             className="text-accent underline underline-offset-4"
           >
-            security@anp.dev
+            security@aiaagentnetwork.com
           </a>{" "}
           rather than opening a public issue. For vulnerabilities in a
           specific implementation, contact that implementation&rsquo;s

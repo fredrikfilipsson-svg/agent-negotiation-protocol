@@ -58,7 +58,8 @@ const verdict = await verifyLog(log);
 console.log(`${verdict.verifiedCount}/${verdict.eventCount} events verify`);
 ```
 
-The spec, schemas, and a browser playground live at <https://anp.dev>.
+The spec, schemas, and a browser playground live at
+<https://aiaagentnetwork.com>.
 This package's source of truth is `src/lib/anp/` in the site repository;
 the files here are synced from it at build time.
 
