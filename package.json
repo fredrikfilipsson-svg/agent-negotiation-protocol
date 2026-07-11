@@ -32,6 +32,7 @@
     "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.20.1",
     "@tailwindcss/postcss": "^4.1.10",
     "@types/node": "^24.0.0",
     "@types/react": "^19.1.0",

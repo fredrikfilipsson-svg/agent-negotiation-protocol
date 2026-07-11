@@ -5,7 +5,8 @@ export const dynamic = "force-static";
 /** RFC 9116 security contact, matching the governance page. */
 export function GET() {
   const body = [
-    "Contact: mailto:security@aiaagentnetwork.com",
+    // Interim contact until a mailbox exists on the site's own domain.
+    "Contact: mailto:info@redresscompliance.com",
     `Canonical: ${SITE_URL}/.well-known/security.txt`,
     "Preferred-Languages: en",
     // Regenerated on every build; one year out per RFC 9116 guidance.

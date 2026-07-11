@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "anp-site",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2025-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  // Zone routes rather than custom domains: the zone already carries
+  // proxied DNS records for these hostnames, and a route lets the worker
+  // answer on them without touching DNS.
+  "routes": [
+    { "pattern": "aiaagentnetwork.com/*", "zone_id": "f8e2ead8d5a999b06dbca24efef632a3" },
+    { "pattern": "www.aiaagentnetwork.com/*", "zone_id": "f8e2ead8d5a999b06dbca24efef632a3" }
+  ],
+  "vars": {
+    "NEXT_PUBLIC_SITE_URL": "https://aiaagentnetwork.com",
+    "NEXT_PUBLIC_DEFAULT_BUYER_HOST": "https://app.vendorbenchmark.com"
+  }
+}

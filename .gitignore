@@ -42,3 +42,4 @@ packages/anp-client/src/
 *.tgz
 .vercel
 .env*
+/.open-next/
