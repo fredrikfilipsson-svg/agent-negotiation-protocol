@@ -44,3 +44,6 @@ packages/anp-client/src/
 .env*
 /.open-next/
 /.wrangler/
+/.next-e2e/
+/playwright-report/
+/test-results/

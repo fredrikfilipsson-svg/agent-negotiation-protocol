@@ -1,0 +1,858 @@
+{
+  "title": "ANP/0.1 test vectors",
+  "description": "Vectors for implementers: canonical JSON bytes and hashes, the exact signed strings, Ed25519 signature fixtures, the event hash preimage, and chain verification cases. Produced by the reference implementation; the published example session log is the companion fixture.",
+  "spec": "https://aiaagentnetwork.com/spec",
+  "example_log": "https://aiaagentnetwork.com/schemas/session-log.example.json",
+  "canonical_json": [
+    {
+      "name": "keys sorted lexicographically at every depth",
+      "input": {
+        "zebra": 1,
+        "apple": {
+          "b": true,
+          "a": [
+            {
+              "y": 2,
+              "x": 1
+            }
+          ]
+        },
+        "1st": null
+      },
+      "canonical": "{\"1st\":null,\"apple\":{\"a\":[{\"x\":1,\"y\":2}],\"b\":true},\"zebra\":1}",
+      "sha256_hex": "936a014a80054cb5341cd646fbe73023c76c222bf219006dc09f31b5967fa8b8"
+    },
+    {
+      "name": "no insignificant whitespace",
+      "input": {
+        "a": [
+          1,
+          2,
+          {
+            "b": "c d"
+          }
+        ]
+      },
+      "canonical": "{\"a\":[1,2,{\"b\":\"c d\"}]}",
+      "sha256_hex": "7c2fb3dd0945c28d4d07d6f33b2281cde4486affc8b8ff97e3b3199c103e4688"
+    },
+    {
+      "name": "unicode is preserved, not escaped beyond JSON rules",
+      "input": {
+        "kéy": "väl\nue 😀"
+      },
+      "canonical": "{\"kéy\":\"väl\\nue 😀\"}",
+      "sha256_hex": "bfcf8fc2005ac4a31fadf4b302c974f20adc9a69f2a3687f20b13b912bce9fb3"
+    },
+    {
+      "name": "number formatting follows ECMAScript JSON.stringify",
+      "input": {
+        "big": 1e+21,
+        "frac": 0.1,
+        "negzero": 0,
+        "int": 1140
+      },
+      "canonical": "{\"big\":1e+21,\"frac\":0.1,\"int\":1140,\"negzero\":0}",
+      "sha256_hex": "f4422bb5f9ffed002b5237dbecbc3c68691871938c4a46c9f473e85383201652"
+    },
+    {
+      "name": "a realistic offer payload",
+      "input": {
+        "currency": "USD",
+        "term_months": 12,
+        "expires_at": "2026-08-01T00:00:00Z",
+        "line_items": [
+          {
+            "description": "CRM Enterprise seats",
+            "quantity": 500,
+            "unit": "seat/year",
+            "unit_price": 1200,
+            "currency": "USD"
+          }
+        ],
+        "conditions": [
+          "Net 30 payment"
+        ]
+      },
+      "canonical": "{\"conditions\":[\"Net 30 payment\"],\"currency\":\"USD\",\"expires_at\":\"2026-08-01T00:00:00Z\",\"line_items\":[{\"currency\":\"USD\",\"description\":\"CRM Enterprise seats\",\"quantity\":500,\"unit\":\"seat/year\",\"unit_price\":1200}],\"term_months\":12}",
+      "sha256_hex": "33a090feaac012b859bc83eab7ff5cc657a29eba698e8894b267257758a4cc0a"
+    },
+    {
+      "name": "a realistic envelope payload",
+      "input": {
+        "party": "Fabrikam Industries",
+        "agent": {
+          "name": "Fabrikam Industries Negotiation Agent",
+          "declared_ai": true
+        },
+        "may_discuss": [
+          "Contoso renewal pricing",
+          "term length",
+          "payment terms",
+          "support tier"
+        ],
+        "may_disclose": [
+          "negotiation positions grounded in market benchmarks",
+          "current deployment scale"
+        ],
+        "will_not_disclose": [
+          "internal budget ceilings",
+          "walk-away thresholds",
+          "competing quotes"
+        ],
+        "offer_authority": "bind_with_human_approval",
+        "human_contact": "procurement@fabrikam.example"
+      },
+      "canonical": "{\"agent\":{\"declared_ai\":true,\"name\":\"Fabrikam Industries Negotiation Agent\"},\"human_contact\":\"procurement@fabrikam.example\",\"may_disclose\":[\"negotiation positions grounded in market benchmarks\",\"current deployment scale\"],\"may_discuss\":[\"Contoso renewal pricing\",\"term length\",\"payment terms\",\"support tier\"],\"offer_authority\":\"bind_with_human_approval\",\"party\":\"Fabrikam Industries\",\"will_not_disclose\":[\"internal budget ceilings\",\"walk-away thresholds\",\"competing quotes\"]}",
+      "sha256_hex": "b0d49fa1002ee2eb1cd254bc88434a9eefbea8db7841da94e8446cf447f63641"
+    }
+  ],
+  "signed_strings": {
+    "note": "Exact UTF-8 strings that get signed. \\n is a single newline byte.",
+    "registration_proof": {
+      "public_key": "YSHFvQFoYEeBUsz2k4e28pqYf17kA8ottQi4ysdqjTc",
+      "string": "ANP/0.1\nregister\nYSHFvQFoYEeBUsz2k4e28pqYf17kA8ottQi4ysdqjTc"
+    },
+    "canonical_request": {
+      "method": "POST",
+      "path": "/api/agent/v1/sessions",
+      "timestamp": "2026-07-11T09:00:00.000Z",
+      "nonce": "vector-nonce-001",
+      "body": "{\"target\":{\"sandbox\":true}}",
+      "body_sha256_hex": "0ed3e06a2050cdcfe37ced6b5ce7c4bd6f337831ec25ee3071c04fef4a3c34fc",
+      "string": "ANP/0.1\nPOST\n/api/agent/v1/sessions\n2026-07-11T09:00:00.000Z\nvector-nonce-001\n0ed3e06a2050cdcfe37ced6b5ce7c4bd6f337831ec25ee3071c04fef4a3c34fc"
+    },
+    "bodyless_request": {
+      "method": "GET",
+      "path": "/api/agent/v1/sessions/5f1c6f2e-9d1a-4c8b-b7e3-2a61c0de9a44/log",
+      "empty_body_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "authorship": {
+      "kind": "offer",
+      "payload_hash": "33a090feaac012b859bc83eab7ff5cc657a29eba698e8894b267257758a4cc0a",
+      "string": "ANP/0.1\noffer\n33a090feaac012b859bc83eab7ff5cc657a29eba698e8894b267257758a4cc0a"
+    }
+  },
+  "signatures": [
+    {
+      "public_key": "VANCr6PfehegbjvpwT8SZ6ocRSusFpOMulN2eHATqZY",
+      "signer_fingerprint": "75e4dbbaf59795a6c0df81868137c419c3b1d004e6cd29f12bdfa01cb9e237d4",
+      "message": "ANP/0.1\nregister\nVANCr6PfehegbjvpwT8SZ6ocRSusFpOMulN2eHATqZY",
+      "signature": "odqDTGb8HaSrxuUfrKlICN8cvN_RCv4ZwbhBZjh6jX91YX90ckZor4JG6taQY40cXcY5RWiwHFevhnWLB62XCQ",
+      "expect": "valid"
+    },
+    {
+      "public_key": "VANCr6PfehegbjvpwT8SZ6ocRSusFpOMulN2eHATqZY",
+      "signer_fingerprint": "75e4dbbaf59795a6c0df81868137c419c3b1d004e6cd29f12bdfa01cb9e237d4",
+      "message": "ANP/0.1\noffer\n33a090feaac012b859bc83eab7ff5cc657a29eba698e8894b267257758a4cc0a",
+      "signature": "h59DbpYjchbcbMjJnD1bx09GT6KVZYoR21hU5AXsUU4e1RhJOeNSwbaNW_g-9q8arrgWLR0HUcyR4xixZX_GAw",
+      "expect": "valid"
+    },
+    {
+      "public_key": "VANCr6PfehegbjvpwT8SZ6ocRSusFpOMulN2eHATqZY",
+      "signer_fingerprint": "75e4dbbaf59795a6c0df81868137c419c3b1d004e6cd29f12bdfa01cb9e237d4",
+      "message": "ANP/0.1\nregister\nVANCr6PfehegbjvpwT8SZ6ocRSusFpOMulN2eHATqZYtampered",
+      "signature": "odqDTGb8HaSrxuUfrKlICN8cvN_RCv4ZwbhBZjh6jX91YX90ckZor4JG6taQY40cXcY5RWiwHFevhnWLB62XCQ",
+      "expect": "invalid"
+    }
+  ],
+  "event_hash": {
+    "note": "sha256_hex of ANP/0.1\\n<session_id>\\n<seq>\\n<actor>\\n<kind>\\n<payload_hash>\\n<prev_hash>\\n<at>",
+    "session_id": "5f1c6f2e-9d1a-4c8b-b7e3-2a61c0de9a44",
+    "event": {
+      "seq": 4,
+      "actor": "buyer",
+      "kind": "counter_offer",
+      "payload_hash": "c5f4a47bec6bf6c43be1fc68408b397782b19a8ef479f3e9dfcc4501635d5e97",
+      "prev_hash": "1325320eedb628abdaf29557c78e7822c9ec56dec452c54adba1d9d8b0bd2ee8",
+      "at": "2026-07-11T09:03:00.000Z"
+    },
+    "expected_event_hash": "74c509ce62d05f538f6d8634f42cdca61bbcb2eec3daf231f15b909e451170f8",
+    "recomputed": "74c509ce62d05f538f6d8634f42cdca61bbcb2eec3daf231f15b909e451170f8"
+  },
+  "chain_verification": [
+    {
+      "name": "the published example log verifies fully green",
+      "expect": {
+        "ok": true,
+        "failing": []
+      },
+      "log": {
+        "protocol": "ANP/0.1",
+        "session": {
+          "id": "5f1c6f2e-9d1a-4c8b-b7e3-2a61c0de9a44",
+          "sandbox": true,
+          "status": "open",
+          "opened_at": "2026-07-11T09:00:00.000Z",
+          "closed_at": null,
+          "event_count": 4,
+          "chain_head": "74c509ce62d05f538f6d8634f42cdca61bbcb2eec3daf231f15b909e451170f8"
+        },
+        "chain": {
+          "verified": true,
+          "head": "74c509ce62d05f538f6d8634f42cdca61bbcb2eec3daf231f15b909e451170f8"
+        },
+        "keys": {
+          "note": "Demo keys generated for this example; verify signatures with these raw Ed25519 public keys (base64url).",
+          "vendor_agent": {
+            "public_key": "YSHFvQFoYEeBUsz2k4e28pqYf17kA8ottQi4ysdqjTc",
+            "fingerprint": "354d4f3177dc9580e41680dc7b65bed71a954cf669a0ac968b99f03ce7e3bee3"
+          },
+          "buyer": {
+            "public_key": "LPfUmzFWBuzPzsx4I5dbg9y_EBJpQrtGNIEqNnS3ysI",
+            "fingerprint": "1d696ce09afea932795da06a5b9c2c46fc7d3d17001818ee5925f8d4121b17e0"
+          }
+        },
+        "events": [
+          {
+            "seq": 1,
+            "actor": "vendor_agent",
+            "kind": "session_open",
+            "payload": {
+              "protocol": "ANP/0.1",
+              "agent": {
+                "id": "2b9d0c4a-7e35-4f61-9a02-c1d8e6b47a90",
+                "name": "Contoso Seller Agent",
+                "fingerprint": "354d4f3177dc9580e41680dc7b65bed71a954cf669a0ac968b99f03ce7e3bee3"
+              },
+              "envelope": {
+                "party": "Contoso",
+                "agent": {
+                  "name": "Contoso Seller Agent",
+                  "declared_ai": true
+                },
+                "may_discuss": [
+                  "renewal pricing",
+                  "term length"
+                ],
+                "may_disclose": [
+                  "list pricing",
+                  "standard discount bands"
+                ],
+                "offer_authority": "propose_only"
+              }
+            },
+            "payload_hash": "8872546e8287e353535db6631b187e914cfb380474219771a7b953f67b28b3a9",
+            "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+            "event_hash": "b0fb26906b528a6f1fc0124f07b269e2623881afdb5110b2c3883f39840be2db",
+            "signature": "_6n-KIU-rFDN3XNtWjj5eF_OKVLW8ulQG2OF5wWraurAiHit86edjchxXGWfGmCN5aEI_rVdVnJsAx9fQCy_Dg",
+            "signer": "354d4f3177dc9580e41680dc7b65bed71a954cf669a0ac968b99f03ce7e3bee3",
+            "at": "2026-07-11T09:00:00.000Z"
+          },
+          {
+            "seq": 2,
+            "actor": "buyer",
+            "kind": "envelope",
+            "payload": {
+              "party": "Fabrikam Industries",
+              "agent": {
+                "name": "Fabrikam Industries Negotiation Agent",
+                "declared_ai": true
+              },
+              "may_discuss": [
+                "Contoso renewal pricing",
+                "term length",
+                "payment terms",
+                "support tier"
+              ],
+              "may_disclose": [
+                "negotiation positions grounded in market benchmarks",
+                "current deployment scale"
+              ],
+              "will_not_disclose": [
+                "internal budget ceilings",
+                "walk-away thresholds",
+                "competing quotes"
+              ],
+              "offer_authority": "bind_with_human_approval",
+              "human_contact": "procurement@fabrikam.example"
+            },
+            "payload_hash": "b0d49fa1002ee2eb1cd254bc88434a9eefbea8db7841da94e8446cf447f63641",
+            "prev_hash": "b0fb26906b528a6f1fc0124f07b269e2623881afdb5110b2c3883f39840be2db",
+            "event_hash": "ac18d8ae6789ea9822c881dbec1e7f5329c62a7ba55e22edfb3a2a4d0bd2a495",
+            "signature": "pBlTd26IFIexARf_sOUqwWduSvxRR_xUwW2_NTx8wRXf21bAtq6unS2LHy9todtUgorwy3R2ziofSgNCPsd4BA",
+            "signer": "1d696ce09afea932795da06a5b9c2c46fc7d3d17001818ee5925f8d4121b17e0",
+            "at": "2026-07-11T09:01:00.000Z"
+          },
+          {
+            "seq": 3,
+            "actor": "vendor_agent",
+            "kind": "offer",
+            "payload": {
+              "currency": "USD",
+              "term_months": 12,
+              "expires_at": "2026-08-01T00:00:00Z",
+              "line_items": [
+                {
+                  "description": "CRM Enterprise seats",
+                  "quantity": 500,
+                  "unit": "seat/year",
+                  "unit_price": 1200,
+                  "currency": "USD"
+                }
+              ],
+              "conditions": [
+                "Net 30 payment"
+              ]
+            },
+            "payload_hash": "33a090feaac012b859bc83eab7ff5cc657a29eba698e8894b267257758a4cc0a",
+            "prev_hash": "ac18d8ae6789ea9822c881dbec1e7f5329c62a7ba55e22edfb3a2a4d0bd2a495",
+            "event_hash": "1325320eedb628abdaf29557c78e7822c9ec56dec452c54adba1d9d8b0bd2ee8",
+            "signature": "Jd2ouI-zWODIe6KXjwCrSDM0gmxBP2-Jge5P9VfITR97Al3P8EHSTlC8gZOAvcVL1yhjvcCICvENntqQVE12Bg",
+            "signer": "354d4f3177dc9580e41680dc7b65bed71a954cf669a0ac968b99f03ce7e3bee3",
+            "at": "2026-07-11T09:02:00.000Z"
+          },
+          {
+            "seq": 4,
+            "actor": "buyer",
+            "kind": "counter_offer",
+            "payload": {
+              "currency": "USD",
+              "term_months": 24,
+              "expires_at": "2026-08-01T00:00:00Z",
+              "line_items": [
+                {
+                  "description": "CRM Enterprise seats",
+                  "quantity": 500,
+                  "unit": "seat/year",
+                  "unit_price": 1056,
+                  "currency": "USD"
+                }
+              ],
+              "conditions": [
+                "Price hold through the full term",
+                "Annual uplift capped at 3%",
+                "No auto-renewal without written notice"
+              ],
+              "notes": "Fabrikam Industries counters at 12% below your opening position, grounded in the market band for this category. We will extend to a 24 month term in exchange for the price hold and the uplift cap."
+            },
+            "payload_hash": "c5f4a47bec6bf6c43be1fc68408b397782b19a8ef479f3e9dfcc4501635d5e97",
+            "prev_hash": "1325320eedb628abdaf29557c78e7822c9ec56dec452c54adba1d9d8b0bd2ee8",
+            "event_hash": "74c509ce62d05f538f6d8634f42cdca61bbcb2eec3daf231f15b909e451170f8",
+            "signature": "kbevy0oI1xASwLQQh2zb2gV6UQ1MrH8SEzgo4kyxclNi53b6v2sNKs6LuV7LtQH3yf4mtBIFFPSPGpdib20pAA",
+            "signer": "1d696ce09afea932795da06a5b9c2c46fc7d3d17001818ee5925f8d4121b17e0",
+            "at": "2026-07-11T09:03:00.000Z"
+          }
+        ]
+      }
+    },
+    {
+      "name": "tampered payload: payload_hash fails on seq 3; the signature over the declared hash still verifies",
+      "expect": {
+        "ok": false,
+        "failing": [
+          {
+            "seq": 3,
+            "checks": [
+              "payload_hash"
+            ]
+          }
+        ]
+      },
+      "log": {
+        "protocol": "ANP/0.1",
+        "session": {
+          "id": "5f1c6f2e-9d1a-4c8b-b7e3-2a61c0de9a44",
+          "sandbox": true,
+          "status": "open",
+          "opened_at": "2026-07-11T09:00:00.000Z",
+          "closed_at": null,
+          "event_count": 4,
+          "chain_head": "74c509ce62d05f538f6d8634f42cdca61bbcb2eec3daf231f15b909e451170f8"
+        },
+        "chain": {
+          "verified": true,
+          "head": "74c509ce62d05f538f6d8634f42cdca61bbcb2eec3daf231f15b909e451170f8"
+        },
+        "keys": {
+          "note": "Demo keys generated for this example; verify signatures with these raw Ed25519 public keys (base64url).",
+          "vendor_agent": {
+            "public_key": "YSHFvQFoYEeBUsz2k4e28pqYf17kA8ottQi4ysdqjTc",
+            "fingerprint": "354d4f3177dc9580e41680dc7b65bed71a954cf669a0ac968b99f03ce7e3bee3"
+          },
+          "buyer": {
+            "public_key": "LPfUmzFWBuzPzsx4I5dbg9y_EBJpQrtGNIEqNnS3ysI",
+            "fingerprint": "1d696ce09afea932795da06a5b9c2c46fc7d3d17001818ee5925f8d4121b17e0"
+          }
+        },
+        "events": [
+          {
+            "seq": 1,
+            "actor": "vendor_agent",
+            "kind": "session_open",
+            "payload": {
+              "protocol": "ANP/0.1",
+              "agent": {
+                "id": "2b9d0c4a-7e35-4f61-9a02-c1d8e6b47a90",
+                "name": "Contoso Seller Agent",
+                "fingerprint": "354d4f3177dc9580e41680dc7b65bed71a954cf669a0ac968b99f03ce7e3bee3"
+              },
+              "envelope": {
+                "party": "Contoso",
+                "agent": {
+                  "name": "Contoso Seller Agent",
+                  "declared_ai": true
+                },
+                "may_discuss": [
+                  "renewal pricing",
+                  "term length"
+                ],
+                "may_disclose": [
+                  "list pricing",
+                  "standard discount bands"
+                ],
+                "offer_authority": "propose_only"
+              }
+            },
+            "payload_hash": "8872546e8287e353535db6631b187e914cfb380474219771a7b953f67b28b3a9",
+            "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+            "event_hash": "b0fb26906b528a6f1fc0124f07b269e2623881afdb5110b2c3883f39840be2db",
+            "signature": "_6n-KIU-rFDN3XNtWjj5eF_OKVLW8ulQG2OF5wWraurAiHit86edjchxXGWfGmCN5aEI_rVdVnJsAx9fQCy_Dg",
+            "signer": "354d4f3177dc9580e41680dc7b65bed71a954cf669a0ac968b99f03ce7e3bee3",
+            "at": "2026-07-11T09:00:00.000Z"
+          },
+          {
+            "seq": 2,
+            "actor": "buyer",
+            "kind": "envelope",
+            "payload": {
+              "party": "Fabrikam Industries",
+              "agent": {
+                "name": "Fabrikam Industries Negotiation Agent",
+                "declared_ai": true
+              },
+              "may_discuss": [
+                "Contoso renewal pricing",
+                "term length",
+                "payment terms",
+                "support tier"
+              ],
+              "may_disclose": [
+                "negotiation positions grounded in market benchmarks",
+                "current deployment scale"
+              ],
+              "will_not_disclose": [
+                "internal budget ceilings",
+                "walk-away thresholds",
+                "competing quotes"
+              ],
+              "offer_authority": "bind_with_human_approval",
+              "human_contact": "procurement@fabrikam.example"
+            },
+            "payload_hash": "b0d49fa1002ee2eb1cd254bc88434a9eefbea8db7841da94e8446cf447f63641",
+            "prev_hash": "b0fb26906b528a6f1fc0124f07b269e2623881afdb5110b2c3883f39840be2db",
+            "event_hash": "ac18d8ae6789ea9822c881dbec1e7f5329c62a7ba55e22edfb3a2a4d0bd2a495",
+            "signature": "pBlTd26IFIexARf_sOUqwWduSvxRR_xUwW2_NTx8wRXf21bAtq6unS2LHy9todtUgorwy3R2ziofSgNCPsd4BA",
+            "signer": "1d696ce09afea932795da06a5b9c2c46fc7d3d17001818ee5925f8d4121b17e0",
+            "at": "2026-07-11T09:01:00.000Z"
+          },
+          {
+            "seq": 3,
+            "actor": "vendor_agent",
+            "kind": "offer",
+            "payload": {
+              "currency": "USD",
+              "term_months": 12,
+              "expires_at": "2026-08-01T00:00:00Z",
+              "line_items": [
+                {
+                  "description": "CRM Enterprise seats",
+                  "quantity": 500,
+                  "unit": "seat/year",
+                  "unit_price": 1,
+                  "currency": "USD"
+                }
+              ],
+              "conditions": [
+                "Net 30 payment"
+              ]
+            },
+            "payload_hash": "33a090feaac012b859bc83eab7ff5cc657a29eba698e8894b267257758a4cc0a",
+            "prev_hash": "ac18d8ae6789ea9822c881dbec1e7f5329c62a7ba55e22edfb3a2a4d0bd2a495",
+            "event_hash": "1325320eedb628abdaf29557c78e7822c9ec56dec452c54adba1d9d8b0bd2ee8",
+            "signature": "Jd2ouI-zWODIe6KXjwCrSDM0gmxBP2-Jge5P9VfITR97Al3P8EHSTlC8gZOAvcVL1yhjvcCICvENntqQVE12Bg",
+            "signer": "354d4f3177dc9580e41680dc7b65bed71a954cf669a0ac968b99f03ce7e3bee3",
+            "at": "2026-07-11T09:02:00.000Z"
+          },
+          {
+            "seq": 4,
+            "actor": "buyer",
+            "kind": "counter_offer",
+            "payload": {
+              "currency": "USD",
+              "term_months": 24,
+              "expires_at": "2026-08-01T00:00:00Z",
+              "line_items": [
+                {
+                  "description": "CRM Enterprise seats",
+                  "quantity": 500,
+                  "unit": "seat/year",
+                  "unit_price": 1056,
+                  "currency": "USD"
+                }
+              ],
+              "conditions": [
+                "Price hold through the full term",
+                "Annual uplift capped at 3%",
+                "No auto-renewal without written notice"
+              ],
+              "notes": "Fabrikam Industries counters at 12% below your opening position, grounded in the market band for this category. We will extend to a 24 month term in exchange for the price hold and the uplift cap."
+            },
+            "payload_hash": "c5f4a47bec6bf6c43be1fc68408b397782b19a8ef479f3e9dfcc4501635d5e97",
+            "prev_hash": "1325320eedb628abdaf29557c78e7822c9ec56dec452c54adba1d9d8b0bd2ee8",
+            "event_hash": "74c509ce62d05f538f6d8634f42cdca61bbcb2eec3daf231f15b909e451170f8",
+            "signature": "kbevy0oI1xASwLQQh2zb2gV6UQ1MrH8SEzgo4kyxclNi53b6v2sNKs6LuV7LtQH3yf4mtBIFFPSPGpdib20pAA",
+            "signer": "1d696ce09afea932795da06a5b9c2c46fc7d3d17001818ee5925f8d4121b17e0",
+            "at": "2026-07-11T09:03:00.000Z"
+          }
+        ]
+      }
+    },
+    {
+      "name": "rewritten prev_hash: linkage and event_hash fail on seq 4",
+      "expect": {
+        "ok": false,
+        "failing": [
+          {
+            "seq": 4,
+            "checks": [
+              "prev_hash",
+              "event_hash"
+            ]
+          }
+        ]
+      },
+      "log": {
+        "protocol": "ANP/0.1",
+        "session": {
+          "id": "5f1c6f2e-9d1a-4c8b-b7e3-2a61c0de9a44",
+          "sandbox": true,
+          "status": "open",
+          "opened_at": "2026-07-11T09:00:00.000Z",
+          "closed_at": null,
+          "event_count": 4,
+          "chain_head": "74c509ce62d05f538f6d8634f42cdca61bbcb2eec3daf231f15b909e451170f8"
+        },
+        "chain": {
+          "verified": true,
+          "head": "74c509ce62d05f538f6d8634f42cdca61bbcb2eec3daf231f15b909e451170f8"
+        },
+        "keys": {
+          "note": "Demo keys generated for this example; verify signatures with these raw Ed25519 public keys (base64url).",
+          "vendor_agent": {
+            "public_key": "YSHFvQFoYEeBUsz2k4e28pqYf17kA8ottQi4ysdqjTc",
+            "fingerprint": "354d4f3177dc9580e41680dc7b65bed71a954cf669a0ac968b99f03ce7e3bee3"
+          },
+          "buyer": {
+            "public_key": "LPfUmzFWBuzPzsx4I5dbg9y_EBJpQrtGNIEqNnS3ysI",
+            "fingerprint": "1d696ce09afea932795da06a5b9c2c46fc7d3d17001818ee5925f8d4121b17e0"
+          }
+        },
+        "events": [
+          {
+            "seq": 1,
+            "actor": "vendor_agent",
+            "kind": "session_open",
+            "payload": {
+              "protocol": "ANP/0.1",
+              "agent": {
+                "id": "2b9d0c4a-7e35-4f61-9a02-c1d8e6b47a90",
+                "name": "Contoso Seller Agent",
+                "fingerprint": "354d4f3177dc9580e41680dc7b65bed71a954cf669a0ac968b99f03ce7e3bee3"
+              },
+              "envelope": {
+                "party": "Contoso",
+                "agent": {
+                  "name": "Contoso Seller Agent",
+                  "declared_ai": true
+                },
+                "may_discuss": [
+                  "renewal pricing",
+                  "term length"
+                ],
+                "may_disclose": [
+                  "list pricing",
+                  "standard discount bands"
+                ],
+                "offer_authority": "propose_only"
+              }
+            },
+            "payload_hash": "8872546e8287e353535db6631b187e914cfb380474219771a7b953f67b28b3a9",
+            "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+            "event_hash": "b0fb26906b528a6f1fc0124f07b269e2623881afdb5110b2c3883f39840be2db",
+            "signature": "_6n-KIU-rFDN3XNtWjj5eF_OKVLW8ulQG2OF5wWraurAiHit86edjchxXGWfGmCN5aEI_rVdVnJsAx9fQCy_Dg",
+            "signer": "354d4f3177dc9580e41680dc7b65bed71a954cf669a0ac968b99f03ce7e3bee3",
+            "at": "2026-07-11T09:00:00.000Z"
+          },
+          {
+            "seq": 2,
+            "actor": "buyer",
+            "kind": "envelope",
+            "payload": {
+              "party": "Fabrikam Industries",
+              "agent": {
+                "name": "Fabrikam Industries Negotiation Agent",
+                "declared_ai": true
+              },
+              "may_discuss": [
+                "Contoso renewal pricing",
+                "term length",
+                "payment terms",
+                "support tier"
+              ],
+              "may_disclose": [
+                "negotiation positions grounded in market benchmarks",
+                "current deployment scale"
+              ],
+              "will_not_disclose": [
+                "internal budget ceilings",
+                "walk-away thresholds",
+                "competing quotes"
+              ],
+              "offer_authority": "bind_with_human_approval",
+              "human_contact": "procurement@fabrikam.example"
+            },
+            "payload_hash": "b0d49fa1002ee2eb1cd254bc88434a9eefbea8db7841da94e8446cf447f63641",
+            "prev_hash": "b0fb26906b528a6f1fc0124f07b269e2623881afdb5110b2c3883f39840be2db",
+            "event_hash": "ac18d8ae6789ea9822c881dbec1e7f5329c62a7ba55e22edfb3a2a4d0bd2a495",
+            "signature": "pBlTd26IFIexARf_sOUqwWduSvxRR_xUwW2_NTx8wRXf21bAtq6unS2LHy9todtUgorwy3R2ziofSgNCPsd4BA",
+            "signer": "1d696ce09afea932795da06a5b9c2c46fc7d3d17001818ee5925f8d4121b17e0",
+            "at": "2026-07-11T09:01:00.000Z"
+          },
+          {
+            "seq": 3,
+            "actor": "vendor_agent",
+            "kind": "offer",
+            "payload": {
+              "currency": "USD",
+              "term_months": 12,
+              "expires_at": "2026-08-01T00:00:00Z",
+              "line_items": [
+                {
+                  "description": "CRM Enterprise seats",
+                  "quantity": 500,
+                  "unit": "seat/year",
+                  "unit_price": 1200,
+                  "currency": "USD"
+                }
+              ],
+              "conditions": [
+                "Net 30 payment"
+              ]
+            },
+            "payload_hash": "33a090feaac012b859bc83eab7ff5cc657a29eba698e8894b267257758a4cc0a",
+            "prev_hash": "ac18d8ae6789ea9822c881dbec1e7f5329c62a7ba55e22edfb3a2a4d0bd2a495",
+            "event_hash": "1325320eedb628abdaf29557c78e7822c9ec56dec452c54adba1d9d8b0bd2ee8",
+            "signature": "Jd2ouI-zWODIe6KXjwCrSDM0gmxBP2-Jge5P9VfITR97Al3P8EHSTlC8gZOAvcVL1yhjvcCICvENntqQVE12Bg",
+            "signer": "354d4f3177dc9580e41680dc7b65bed71a954cf669a0ac968b99f03ce7e3bee3",
+            "at": "2026-07-11T09:02:00.000Z"
+          },
+          {
+            "seq": 4,
+            "actor": "buyer",
+            "kind": "counter_offer",
+            "payload": {
+              "currency": "USD",
+              "term_months": 24,
+              "expires_at": "2026-08-01T00:00:00Z",
+              "line_items": [
+                {
+                  "description": "CRM Enterprise seats",
+                  "quantity": 500,
+                  "unit": "seat/year",
+                  "unit_price": 1056,
+                  "currency": "USD"
+                }
+              ],
+              "conditions": [
+                "Price hold through the full term",
+                "Annual uplift capped at 3%",
+                "No auto-renewal without written notice"
+              ],
+              "notes": "Fabrikam Industries counters at 12% below your opening position, grounded in the market band for this category. We will extend to a 24 month term in exchange for the price hold and the uplift cap."
+            },
+            "payload_hash": "c5f4a47bec6bf6c43be1fc68408b397782b19a8ef479f3e9dfcc4501635d5e97",
+            "prev_hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "event_hash": "74c509ce62d05f538f6d8634f42cdca61bbcb2eec3daf231f15b909e451170f8",
+            "signature": "kbevy0oI1xASwLQQh2zb2gV6UQ1MrH8SEzgo4kyxclNi53b6v2sNKs6LuV7LtQH3yf4mtBIFFPSPGpdib20pAA",
+            "signer": "1d696ce09afea932795da06a5b9c2c46fc7d3d17001818ee5925f8d4121b17e0",
+            "at": "2026-07-11T09:03:00.000Z"
+          }
+        ]
+      }
+    },
+    {
+      "name": "sequence gap: seq and event_hash fail on the renumbered event",
+      "expect": {
+        "ok": false,
+        "failing": [
+          {
+            "seq": 7,
+            "checks": [
+              "seq",
+              "event_hash"
+            ]
+          }
+        ]
+      },
+      "log": {
+        "protocol": "ANP/0.1",
+        "session": {
+          "id": "5f1c6f2e-9d1a-4c8b-b7e3-2a61c0de9a44",
+          "sandbox": true,
+          "status": "open",
+          "opened_at": "2026-07-11T09:00:00.000Z",
+          "closed_at": null,
+          "event_count": 4,
+          "chain_head": "74c509ce62d05f538f6d8634f42cdca61bbcb2eec3daf231f15b909e451170f8"
+        },
+        "chain": {
+          "verified": true,
+          "head": "74c509ce62d05f538f6d8634f42cdca61bbcb2eec3daf231f15b909e451170f8"
+        },
+        "keys": {
+          "note": "Demo keys generated for this example; verify signatures with these raw Ed25519 public keys (base64url).",
+          "vendor_agent": {
+            "public_key": "YSHFvQFoYEeBUsz2k4e28pqYf17kA8ottQi4ysdqjTc",
+            "fingerprint": "354d4f3177dc9580e41680dc7b65bed71a954cf669a0ac968b99f03ce7e3bee3"
+          },
+          "buyer": {
+            "public_key": "LPfUmzFWBuzPzsx4I5dbg9y_EBJpQrtGNIEqNnS3ysI",
+            "fingerprint": "1d696ce09afea932795da06a5b9c2c46fc7d3d17001818ee5925f8d4121b17e0"
+          }
+        },
+        "events": [
+          {
+            "seq": 1,
+            "actor": "vendor_agent",
+            "kind": "session_open",
+            "payload": {
+              "protocol": "ANP/0.1",
+              "agent": {
+                "id": "2b9d0c4a-7e35-4f61-9a02-c1d8e6b47a90",
+                "name": "Contoso Seller Agent",
+                "fingerprint": "354d4f3177dc9580e41680dc7b65bed71a954cf669a0ac968b99f03ce7e3bee3"
+              },
+              "envelope": {
+                "party": "Contoso",
+                "agent": {
+                  "name": "Contoso Seller Agent",
+                  "declared_ai": true
+                },
+                "may_discuss": [
+                  "renewal pricing",
+                  "term length"
+                ],
+                "may_disclose": [
+                  "list pricing",
+                  "standard discount bands"
+                ],
+                "offer_authority": "propose_only"
+              }
+            },
+            "payload_hash": "8872546e8287e353535db6631b187e914cfb380474219771a7b953f67b28b3a9",
+            "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+            "event_hash": "b0fb26906b528a6f1fc0124f07b269e2623881afdb5110b2c3883f39840be2db",
+            "signature": "_6n-KIU-rFDN3XNtWjj5eF_OKVLW8ulQG2OF5wWraurAiHit86edjchxXGWfGmCN5aEI_rVdVnJsAx9fQCy_Dg",
+            "signer": "354d4f3177dc9580e41680dc7b65bed71a954cf669a0ac968b99f03ce7e3bee3",
+            "at": "2026-07-11T09:00:00.000Z"
+          },
+          {
+            "seq": 2,
+            "actor": "buyer",
+            "kind": "envelope",
+            "payload": {
+              "party": "Fabrikam Industries",
+              "agent": {
+                "name": "Fabrikam Industries Negotiation Agent",
+                "declared_ai": true
+              },
+              "may_discuss": [
+                "Contoso renewal pricing",
+                "term length",
+                "payment terms",
+                "support tier"
+              ],
+              "may_disclose": [
+                "negotiation positions grounded in market benchmarks",
+                "current deployment scale"
+              ],
+              "will_not_disclose": [
+                "internal budget ceilings",
+                "walk-away thresholds",
+                "competing quotes"
+              ],
+              "offer_authority": "bind_with_human_approval",
+              "human_contact": "procurement@fabrikam.example"
+            },
+            "payload_hash": "b0d49fa1002ee2eb1cd254bc88434a9eefbea8db7841da94e8446cf447f63641",
+            "prev_hash": "b0fb26906b528a6f1fc0124f07b269e2623881afdb5110b2c3883f39840be2db",
+            "event_hash": "ac18d8ae6789ea9822c881dbec1e7f5329c62a7ba55e22edfb3a2a4d0bd2a495",
+            "signature": "pBlTd26IFIexARf_sOUqwWduSvxRR_xUwW2_NTx8wRXf21bAtq6unS2LHy9todtUgorwy3R2ziofSgNCPsd4BA",
+            "signer": "1d696ce09afea932795da06a5b9c2c46fc7d3d17001818ee5925f8d4121b17e0",
+            "at": "2026-07-11T09:01:00.000Z"
+          },
+          {
+            "seq": 7,
+            "actor": "vendor_agent",
+            "kind": "offer",
+            "payload": {
+              "currency": "USD",
+              "term_months": 12,
+              "expires_at": "2026-08-01T00:00:00Z",
+              "line_items": [
+                {
+                  "description": "CRM Enterprise seats",
+                  "quantity": 500,
+                  "unit": "seat/year",
+                  "unit_price": 1200,
+                  "currency": "USD"
+                }
+              ],
+              "conditions": [
+                "Net 30 payment"
+              ]
+            },
+            "payload_hash": "33a090feaac012b859bc83eab7ff5cc657a29eba698e8894b267257758a4cc0a",
+            "prev_hash": "ac18d8ae6789ea9822c881dbec1e7f5329c62a7ba55e22edfb3a2a4d0bd2a495",
+            "event_hash": "1325320eedb628abdaf29557c78e7822c9ec56dec452c54adba1d9d8b0bd2ee8",
+            "signature": "Jd2ouI-zWODIe6KXjwCrSDM0gmxBP2-Jge5P9VfITR97Al3P8EHSTlC8gZOAvcVL1yhjvcCICvENntqQVE12Bg",
+            "signer": "354d4f3177dc9580e41680dc7b65bed71a954cf669a0ac968b99f03ce7e3bee3",
+            "at": "2026-07-11T09:02:00.000Z"
+          },
+          {
+            "seq": 4,
+            "actor": "buyer",
+            "kind": "counter_offer",
+            "payload": {
+              "currency": "USD",
+              "term_months": 24,
+              "expires_at": "2026-08-01T00:00:00Z",
+              "line_items": [
+                {
+                  "description": "CRM Enterprise seats",
+                  "quantity": 500,
+                  "unit": "seat/year",
+                  "unit_price": 1056,
+                  "currency": "USD"
+                }
+              ],
+              "conditions": [
+                "Price hold through the full term",
+                "Annual uplift capped at 3%",
+                "No auto-renewal without written notice"
+              ],
+              "notes": "Fabrikam Industries counters at 12% below your opening position, grounded in the market band for this category. We will extend to a 24 month term in exchange for the price hold and the uplift cap."
+            },
+            "payload_hash": "c5f4a47bec6bf6c43be1fc68408b397782b19a8ef479f3e9dfcc4501635d5e97",
+            "prev_hash": "1325320eedb628abdaf29557c78e7822c9ec56dec452c54adba1d9d8b0bd2ee8",
+            "event_hash": "74c509ce62d05f538f6d8634f42cdca61bbcb2eec3daf231f15b909e451170f8",
+            "signature": "kbevy0oI1xASwLQQh2zb2gV6UQ1MrH8SEzgo4kyxclNi53b6v2sNKs6LuV7LtQH3yf4mtBIFFPSPGpdib20pAA",
+            "signer": "1d696ce09afea932795da06a5b9c2c46fc7d3d17001818ee5925f8d4121b17e0",
+            "at": "2026-07-11T09:03:00.000Z"
+          }
+        ]
+      }
+    }
+  ]
+}
