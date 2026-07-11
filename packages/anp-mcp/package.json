@@ -1,0 +1,42 @@
+{
+  "name": "@anp/mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server exposing ANP/0.1 vendor agent tools: generate an identity, register with a buyer host, open sessions, send offers, and verify session logs.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fredrikfilipsson-svg/agent-negotiation-protocol"
+  },
+  "keywords": [
+    "anp",
+    "mcp",
+    "model-context-protocol",
+    "ai-agents",
+    "negotiation"
+  ],
+  "type": "module",
+  "bin": {
+    "anp-mcp": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@anp/client": "file:../anp-client",
+    "@modelcontextprotocol/sdk": "^1.13.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
