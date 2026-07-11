@@ -39,3 +39,6 @@ coverage/
 packages/*/node_modules/
 packages/*/dist/
 packages/anp-client/src/
+*.tgz
+.vercel
+.env*
