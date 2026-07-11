@@ -153,10 +153,22 @@ describe("verifyLog against the bundled example session log", () => {
     expect(checks.signature.detail).toMatch(/should/i);
   });
 
-  it("rejects a signature without a signer and vice versa", async () => {
+  it("rejects a signature without a declared signer", async () => {
     const log = loadExample();
     log.events[1].signer = null;
     const verification = await verifyLog(log);
     expect(checksBySeq(verification, 2).signature.ok).toBe(false);
+  });
+
+  it("accepts an unsigned event with a signer as recorded, unproven attribution", async () => {
+    // The event schema allows signature to be null while signer is set;
+    // section 4 only requires that signatures which exist verify.
+    const log = loadExample();
+    log.events[0].signature = null;
+    const verification = await verifyLog(log);
+    const check = checksBySeq(verification, 1).signature;
+    expect(check.ok).toBe(true);
+    expect(check.detail).toMatch(/not proven/i);
+    expect(verification.ok).toBe(true);
   });
 });

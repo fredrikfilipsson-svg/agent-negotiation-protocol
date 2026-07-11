@@ -287,11 +287,23 @@ export async function verifyLog(
               },
         );
       }
-    } else if (event.signature || event.signer) {
+    } else if (event.signature && !event.signer) {
+      // A signature with no declared signer cannot be checked against any
+      // key; per section 4 every signature must verify against its signer.
       checks.push({
         name: "signature",
         ok: false,
-        detail: "signature and signer must be present together or not at all",
+        detail:
+          "a signature is present but no signer is declared, so it cannot be verified against any key",
+      });
+    } else if (event.signer && !event.signature) {
+      // The schema allows a null signature. Nothing fails, but nothing is
+      // proven either: the signer field alone is attribution, not evidence.
+      checks.push({
+        name: "signature",
+        ok: true,
+        detail:
+          "authorship is attributed to this signer but the event carries no signature; the attribution is recorded, not proven",
       });
     } else {
       checks.push({
