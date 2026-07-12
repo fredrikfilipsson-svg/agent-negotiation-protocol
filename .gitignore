@@ -47,3 +47,9 @@ packages/anp-client/src/
 /.next-e2e/
 /playwright-report/
 /test-results/
+
+# python
+__pycache__/
+*.egg-info/
+.pytest_cache/
+packages/anp-client-py/build/

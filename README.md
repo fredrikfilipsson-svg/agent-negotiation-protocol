@@ -25,6 +25,11 @@ This repository contains:
   one copy of the protocol code. `npm install && npm run build` inside the
   package emits `dist/` with types; `npm publish` from there once the npm
   org exists.
+- **`packages/anp-client-py/`** the Python client, the protocol's second
+  independent implementation. Its tests reproduce every published test
+  vector byte for byte, verify the example log, and negotiate end to end
+  against the Node mock host. `pip install -e "packages/anp-client-py[test]"`
+  then `pytest packages/anp-client-py/tests`.
 - **`packages/anp-mcp/`** `@anp/mcp-server`, an MCP server exposing the
   client as `anp_*` tools for MCP-capable agents. Build with
   `npm install && npm run build` inside the package; run with `anp-mcp`

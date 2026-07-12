@@ -26,7 +26,9 @@ import {
   signedHeaders,
 } from "../client";
 
-const HOST = "http://127.0.0.1:8788";
+// High ports to stay clear of dev servers and stray workerd instances.
+const HOST = "http://127.0.0.1:18788";
+const RECEIVER_PORT = 18791;
 const scriptPath = fileURLToPath(
   new URL("../../../../scripts/mock-buyer-host.mjs", import.meta.url),
 );
@@ -65,7 +67,7 @@ function offer(unitPrice: number) {
 
 beforeAll(async () => {
   child = spawn(process.execPath, [scriptPath], {
-    env: { ...process.env, PORT: "8788", ANP_DRAFT: "1" },
+    env: { ...process.env, PORT: "18788", ANP_DRAFT: "1" },
     stdio: "ignore",
   });
   // Wait for the host to listen; the well-known endpoint doubles as the
@@ -233,6 +235,92 @@ describe("RFC-001/002/005: accept with approval attestation", () => {
         in_response_to: "a".repeat(64),
       }),
     ).rejects.toThrow(/does not reference/);
+  });
+});
+
+describe("RFC-008: webhook hints", () => {
+  it("POSTs a signed hint after buyer events, verifiable against the well-known key", async () => {
+    const { createServer } = await import("node:http");
+    let resolveHint!: (value: {
+      body: Record<string, unknown>;
+      signature: string;
+      timestamp: string;
+    }) => void;
+    const hintReceived = new Promise<{
+      body: Record<string, unknown>;
+      signature: string;
+      timestamp: string;
+    }>((resolve) => {
+      resolveHint = resolve;
+    });
+    const receiver = createServer((req, res) => {
+      let raw = "";
+      req.on("data", (chunk) => (raw += chunk));
+      req.on("end", () => {
+        resolveHint({
+          body: JSON.parse(raw) as Record<string, unknown>,
+          signature: String(req.headers["x-anp-platform-signature"]),
+          timestamp: String(req.headers["x-anp-timestamp"]),
+        });
+        res.writeHead(204).end();
+      });
+    });
+    await new Promise<void>((r) => receiver.listen(RECEIVER_PORT, r));
+
+    try {
+      // Register a fresh identity with a webhook URL (raw request; the
+      // 0.1 client's RegisterDetails has no webhook field by design).
+      const hooked = await generateIdentity();
+      const proof = await sign(
+        hooked.privateKey,
+        `ANP/0.1\nregister\n${hooked.publicKey}`,
+      );
+      const regRes = await fetch(`${HOST}/api/agent/v1/register`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          agent_name: "Webhook Test Agent",
+          vendor_name: "Webhook Test Vendor",
+          contact_email: "hooks@example.com",
+          public_key: hooked.publicKey,
+          proof,
+          webhook_url: `http://127.0.0.1:${RECEIVER_PORT}/hint`,
+        }),
+      });
+      expect(regRes.ok).toBe(true);
+      hooked.agentId = ((await regRes.json()) as { agent_id: string }).agent_id;
+
+      const opened = await openSession(HOST, hooked, ENVELOPE, {
+        sandbox: true,
+      });
+      const log = await sendEvent(
+        HOST,
+        hooked,
+        opened.sessionId,
+        "offer",
+        offer(1200),
+      );
+
+      const hint = await hintReceived;
+      // The hint carries no event content, only pointers.
+      expect(hint.body.session_id).toBe(opened.sessionId);
+      expect(hint.body.event_count).toBe(log.events.length);
+      expect(hint.body.chain_head).toBe(
+        log.events[log.events.length - 1].event_hash,
+      );
+      // The platform signature verifies over the RFC-008 webhook string,
+      // against the key published at /.well-known/anp.json.
+      const webhookString = `ANP/0.2\nwebhook\n${hint.body.session_id}\n${hint.body.event_count}\n${hint.body.chain_head}\n${hint.body.at}`;
+      expect(
+        await verifySignature(
+          wellKnown.platform_keys[0].public_key,
+          hint.signature,
+          webhookString,
+        ),
+      ).toBe(true);
+    } finally {
+      receiver.close();
+    }
   });
 });
 

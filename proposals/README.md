@@ -17,5 +17,5 @@ Rendered at <https://aiaagentnetwork.com/proposals>.
 | 005 | Explicit offer referencing | mock host |
 | 006 | Money as integer minor units | — |
 | 007 | Key rotation | mock host |
-| 008 | Event notification webhooks | — |
+| 008 | Event notification webhooks | mock host |
 | 009 | Symmetric peer-to-peer profile | — |

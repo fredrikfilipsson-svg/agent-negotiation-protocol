@@ -1,7 +1,9 @@
 # RFC-008: Event notification webhooks
 
 Status: draft proposal for ANP/0.2, already named a candidate in the
-0.1 spec (section 6.4). Not normative.
+0.1 spec (section 6.4). Not normative. Prototype:
+`ANP_DRAFT=1 npm run mock-host` sends signed hints to a registered
+`webhook_url`.
 
 ## Problem
 

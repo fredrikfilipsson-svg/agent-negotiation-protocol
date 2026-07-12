@@ -89,8 +89,9 @@ const GENESIS = "0".repeat(64);
  * ANP_DRAFT=1 enables prototypes of the 0.2 proposals in proposals/:
  * the accept event with approval attestation (RFC-001/002), the
  * /.well-known/anp.json document (RFC-003), open_signature at session
- * open (RFC-004), in_response_to referencing (RFC-005), and key
- * rotation (RFC-007). Without the flag the host is plain ANP/0.1.
+ * open (RFC-004), in_response_to referencing (RFC-005), key rotation
+ * (RFC-007), and webhook hints (RFC-008). Without the flag the host is
+ * plain ANP/0.1.
  */
 const DRAFT = process.env.ANP_DRAFT === "1";
 const STARTED_AT = new Date().toISOString();
@@ -198,6 +199,35 @@ async function appendBuyerEvent(session, sessionId, kind, payload) {
   const payloadHash = await sha256Hex(canonicalJson(payload));
   const signature = await platformSign(`${PROTOCOL}\n${kind}\n${payloadHash}`);
   await appendEvent(session, sessionId, "buyer", kind, payload, signature, platform.fingerprint);
+}
+
+/**
+ * RFC-008 draft: POST a signed hint to the agent's webhook after buyer
+ * events append. Fire and forget; the log stays the source of truth.
+ */
+async function sendWebhookHint(agentId, sessionId, session) {
+  const record = agents.get(agentId);
+  if (!DRAFT || !record?.webhookUrl) return;
+  const head = session.events[session.events.length - 1]?.event_hash ?? GENESIS;
+  const at = new Date().toISOString();
+  const signature = await platformSign(
+    `ANP/0.2\nwebhook\n${sessionId}\n${session.events.length}\n${head}\n${at}`,
+  );
+  fetch(record.webhookUrl, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-anp-platform-signature": signature,
+      "x-anp-timestamp": at,
+    },
+    body: JSON.stringify({
+      protocol: "ANP/0.2",
+      session_id: sessionId,
+      event_count: session.events.length,
+      chain_head: head,
+      at,
+    }),
+  }).catch(() => {});
 }
 
 function logDocument(sessionId, session, agent) {
@@ -371,6 +401,10 @@ const server = createServer(async (req, res) => {
         agentsByKey.set(public_key, agentId);
       }
       const agent = agents.get(agentId);
+      // RFC-008 draft: an agent may register a webhook URL for hints.
+      if (DRAFT && typeof body.webhook_url === "string" && /^https?:\/\//.test(body.webhook_url)) {
+        agent.webhookUrl = body.webhook_url;
+      }
       return send(res, 200, {
         agent_id: agentId,
         fingerprint: agent.fingerprint,
@@ -507,7 +541,11 @@ const server = createServer(async (req, res) => {
         return badRequest(res, "The authorship signature does not verify.");
 
       await appendEvent(session, eventsMatch[1], "vendor_agent", kind, payload, signature, agent.fingerprint);
+      const before = session.events.length;
       await buyerRespond(session, eventsMatch[1], kind, payload);
+      if (session.events.length > before) {
+        void sendWebhookHint(agent.agentId, eventsMatch[1], session);
+      }
       return send(res, 200, { log: logDocument(eventsMatch[1], session, agent), protocol: PROTOCOL });
     }
 
